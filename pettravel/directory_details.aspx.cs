@@ -82,13 +82,14 @@ namespace pettravel
                             }
                         }
                     } while (rd2.NextResult());
-                    if (time.Count == 2)
-                    {
-                        opentime.Text = "&nbsp;&nbsp;&nbsp;&nbsp;" + day[0].Replace(",", "&nbsp;&nbsp;&nbsp;&nbsp;" + time[0] + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + time[1] + "</br>&nbsp;&nbsp;&nbsp;&nbsp;") + "&nbsp;&nbsp;&nbsp;" + time[0] + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + time[1];
-                    }
-                    else if (time.Count == 1)
+
+                    if (time.Count == 1)
                     {
                         opentime.Text = "&nbsp;&nbsp;&nbsp;&nbsp;" + day[0].Replace(",", "&nbsp;&nbsp;&nbsp;&nbsp;" + time[0] + "</br>&nbsp;&nbsp;&nbsp;&nbsp;") + "&nbsp;&nbsp;&nbsp;" + time[0];
+                    }
+                    else if (time.Count == 2)
+                    {
+                        opentime.Text = "&nbsp;&nbsp;&nbsp;&nbsp;" + day[0].Replace(",", "&nbsp;&nbsp;&nbsp;&nbsp;" + time[0] + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + time[1] + "</br>&nbsp;&nbsp;&nbsp;&nbsp;") + "&nbsp;&nbsp;&nbsp;" + time[0] + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + time[1];
                     }
                     else if (time.Count == 3)
                     {
@@ -147,18 +148,20 @@ namespace pettravel
             Session["type"] = Request.QueryString["type"];
 
             //留言板
-            string sqlstring4 = System.Web.Configuration.WebConfigurationManager.ConnectionStrings["PetTravelConnectionString"].ConnectionString; //從config找到資料庫位置                
-            SqlConnection conn4 = new SqlConnection(sqlstring4);
-            string sql4 = @"select id,header,name,main,convert(varchar,year(initdate))+'" + "/'+convert(varchar,month(initdate))+'" + "/'+convert(varchar,day(initdate)) as initdate,(select count(*) from Reply where bid=MessageBoard.id) as replycount from MessageBoard where sid=@id";
-            SqlCommand cmd4 = new SqlCommand(sql4, conn4);//對資料庫下令的SQL語法
-            cmd4.Parameters.Add("@id", SqlDbType.Int).Value = Convert.ToInt32(Request.QueryString["storeid"]);
-            SqlDataAdapter dataAdapter = new SqlDataAdapter(cmd4);
-            DataSet dataset = new DataSet();//創立一個dataset的記憶體資料庫
-            dataAdapter.Fill(dataset);//將上面抓到的資料存入dataset內
-            GridView1.DataSource = dataset;//DataSource的資料來源是dataset or datatable
-            GridView1.DataBind();//資料與欄位合在一起
-
-            
+            if (!IsPostBack)
+            {
+                string sqlstring4 = System.Web.Configuration.WebConfigurationManager.ConnectionStrings["PetTravelConnectionString"].ConnectionString; //從config找到資料庫位置                
+                SqlConnection conn4 = new SqlConnection(sqlstring4);
+                string sql4 = @"select id,header,name,main,convert(varchar,year(initdate))+'" + "/'+convert(varchar,month(initdate))+'" + "/'+convert(varchar,day(initdate)) as initdate,(select count(*) from Reply where bid=MessageBoard.id) as replycount from MessageBoard where sid=@id";
+                SqlCommand cmd4 = new SqlCommand(sql4, conn4);//對資料庫下令的SQL語法
+                cmd4.Parameters.Add("@id", SqlDbType.Int).Value = Convert.ToInt32(Request.QueryString["storeid"]);
+                SqlDataAdapter dataAdapter = new SqlDataAdapter(cmd4);
+                DataSet dataset = new DataSet();//創立一個dataset的記憶體資料庫
+                dataAdapter.Fill(dataset);//將上面抓到的資料存入dataset內
+                GridView1.DataSource = dataset;//DataSource的資料來源是dataset or datatable
+                GridView1.DataBind();//資料與欄位合在一起
+            }
+       
             string[] Filename= new string[5];
             int j = 1;
             foreach (string fname in Directory.GetFileSystemEntries(Server.MapPath("/pic/StoreInfo/" + Convert.ToInt32(Request.QueryString["storeid"]))))
@@ -231,25 +234,6 @@ namespace pettravel
             }
         }
 
-        protected string sName()
-        {
-            string sqlstring = System.Web.Configuration.WebConfigurationManager.ConnectionStrings["PetTravelConnectionString"].ConnectionString;
-            SqlConnection conn = new SqlConnection(sqlstring);
-            conn.Open();
-            string sql = "select * from StoreInfo where sid = @sid";
-            SqlCommand cmd = new SqlCommand(sql, conn);
-            cmd.Parameters.Add("@sid", SqlDbType.Int).Value = Request.QueryString["storeid"];
-            SqlDataReader rd = cmd.ExecuteReader();
-            if (rd.HasRows)
-            {
-                if (rd.Read())
-                {
-                    return rd["sname"].ToString();
-                }
-            }
-            return null;
-        }
-
         protected void PersonalDataLB_Click(object sender, EventArgs e)
         {
             Response.Redirect("personaldata");
@@ -307,11 +291,6 @@ namespace pettravel
             }
         }
 
-        private void SetLoadTime()
-        {
-            Session["loadTime"] = Server.UrlEncode(DateTime.Now.ToString());
-        }
-
         /// 取得值，指出網頁是否經由重新整理動作回傳 (PostBack)
         protected bool IsRefresh
         {
@@ -319,7 +298,7 @@ namespace pettravel
             {
                 if (HttpContext.Current.Request["loadTime"] as string == Session["loadTime"] as string)
                 {
-                    SetLoadTime();
+                    Session["loadTime"] = Server.UrlEncode(DateTime.Now.ToString());
                     return false;
                 }
 
